@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Calendar from '../Calendar';
 import { useClock, fmtTime, fmtDateLong } from '@/hooks/useClock';
 
@@ -10,24 +10,6 @@ export function Placeholder({ meta }) {
       <Icon size={80} stroke="url(#zgrad)" strokeWidth={1.2} />
       <h2 className="text-2xl">{meta.title}</h2>
       <p className="text-sm text-white/60">Ye app jald aa raha hai.</p>
-    </div>
-  );
-}
-
-export function Photos() {
-  const pos = ['0% 50%', '100% 50%', '50% 100%', '20% 30%', '80% 70%', '50% 20%'];
-  return (
-    <div className="scroll-thin h-full overflow-y-auto p-5">
-      <h3 className="mb-4 font-semibold">All photos</h3>
-      <div className="grid grid-cols-3 gap-3">
-        {pos.map((p, i) => (
-          <div
-            key={i}
-            className="aspect-video rounded-xl border border-white/15 bg-cover"
-            style={{ backgroundImage: 'url(/wallpaper.png)', backgroundSize: '300%', backgroundPosition: p }}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -47,12 +29,38 @@ export function ClockApp() {
 }
 
 export function Notepad() {
+  const [t, setT] = useState('');
+
+  useEffect(() => {
+    try { setT(localStorage.getItem('zk-note') || ''); } catch {}
+  }, []);
+
+  const change = (v) => {
+    setT(v);
+    try { localStorage.setItem('zk-note', v); } catch {}
+  };
+
+  const save = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' }));
+    a.download = 'note.txt';
+    a.click();
+  };
+
   return (
-    <textarea
-      placeholder="Yahan likho..."
-      className="h-full w-full resize-none bg-transparent p-5 text-sm outline-none placeholder:text-white/40"
-      style={{ userSelect: 'text' }}
-    />
+    <div className="flex h-full flex-col">
+      <textarea
+        value={t}
+        onChange={(e) => change(e.target.value)}
+        placeholder="Yahan likho..."
+        className="flex-1 resize-none bg-transparent p-5 text-sm outline-none placeholder:text-white/40"
+        style={{ userSelect: 'text' }}
+      />
+      <div className="flex items-center justify-between border-t border-white/10 px-4 py-2 text-xs text-white/60">
+        <span>Auto-saved in browser</span>
+        <button onClick={save} className="grad-bg rounded-full px-3 py-1 text-white">Save to device</button>
+      </div>
+    </div>
   );
 }
 

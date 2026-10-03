@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wifi, Bluetooth, Plane, Battery, Sun, Moon, Volume2, ChevronDown, BatteryMedium } from 'lucide-react';
+import { Wifi, Bluetooth, Plane, Battery, Sun, Moon, Volume2, ChevronDown } from 'lucide-react';
 import Calendar from './Calendar';
+import BatteryInfo from './BatteryInfo';
 import { Slider } from './ui';
 import { useOS } from '@/store/useOS';
+import { useSys } from '@/store/useSys';
 import { NOTIF_ICON } from '@/lib/apps';
 import { useClock, fmtDateLong } from '@/hooks/useClock';
 
@@ -18,7 +20,8 @@ const TILES = [
 ];
 
 export default function QuickSettings() {
-  const { notifications, clearNotifications, toggles, toggle, brightness, setBrightness, volume, setVolume } = useOS();
+  const { notifications, clearNotifications, toggles, toggle, brightness, setBrightness, volume, setVolume, openApp } = useOS();
+  const { online, btName, pairBluetooth } = useSys();
   const [cal, setCal] = useState(true);
   const now = useClock();
 
@@ -41,7 +44,7 @@ export default function QuickSettings() {
         <div className="flex flex-col gap-2">
           {notifications.length === 0 && <p className="py-3 text-center text-sm text-white/60">Koi nayi notification nahi</p>}
           {notifications.map((n) => {
-            const Icon = NOTIF_ICON[n.icon];
+            const Icon = NOTIF_ICON[n.icon] || NOTIF_ICON.sys;
             return (
               <div key={n.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-2.5">
                 <div className="grad-bg flex h-9 w-9 items-center justify-center rounded-lg"><Icon size={18} /></div>
@@ -64,17 +67,21 @@ export default function QuickSettings() {
       <div className="glass-strong rounded-3xl p-4">
         <div className="grid grid-cols-3 gap-2.5">
           {TILES.map((t) => {
-            const on = toggles[t.k];
+            const on = t.k === 'wifi' ? online : t.k === 'bluetooth' ? !!btName || toggles.bluetooth : toggles[t.k];
+            const sub =
+              t.k === 'wifi' ? (online ? 'Connected' : 'Offline')
+              : t.k === 'bluetooth' && btName ? btName
+              : on ? 'On' : 'Off';
             return (
               <button
                 key={t.k}
-                onClick={() => toggle(t.k)}
+                onClick={() => (t.k === 'bluetooth' ? pairBluetooth() : t.k === 'wifi' ? openApp('settings') : toggle(t.k))}
                 className={`flex h-[62px] items-center gap-2.5 rounded-xl border border-white/15 px-3 text-left ${on ? 'tile-on' : 'bg-white/5'}`}
               >
                 <t.icon size={20} />
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-medium leading-tight">{t.label}</div>
-                  <div className="text-[11px] text-white/70">{on ? 'On' : 'Off'}</div>
+                  <div className="truncate text-[11px] text-white/70">{sub}</div>
                 </div>
               </button>
             );
@@ -83,7 +90,7 @@ export default function QuickSettings() {
         <div className="mt-4 flex items-center gap-3"><Sun size={20} /><Slider value={brightness} onChange={setBrightness} /></div>
         <div className="mt-4 flex items-center gap-3">
           <Volume2 size={20} /><Slider value={volume} onChange={setVolume} />
-          <span className="flex shrink-0 items-center gap-1 text-sm">78% <BatteryMedium size={20} /></span>
+          <BatteryInfo size={20} className="gap-1 text-sm shrink-0" />
         </div>
       </div>
     </motion.div>

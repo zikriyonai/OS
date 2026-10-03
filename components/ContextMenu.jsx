@@ -1,7 +1,8 @@
 'use client';
 import { motion } from 'framer-motion';
-import { Plus, LayoutGrid, ArrowDownUp, RefreshCw, Monitor, Brush, ChevronRight } from 'lucide-react';
+import { Plus, LayoutGrid, ArrowDownUp, RefreshCw, Monitor, Brush, ChevronRight, Maximize } from 'lucide-react';
 import { useOS } from '@/store/useOS';
+import { useSys } from '@/store/useSys';
 
 export default function ContextMenu() {
   const ctx = useOS((s) => s.context);
@@ -9,13 +10,14 @@ export default function ContextMenu() {
   const openApp = useOS((s) => s.openApp);
 
   const left = Math.min(ctx.x, window.innerWidth - 260);
-  const top = Math.min(ctx.y, window.innerHeight - 330);
+  const top = Math.min(ctx.y, window.innerHeight - 380);
 
   const items = [
     { label: 'New', icon: Plus, arrow: true },
     { label: 'View', icon: LayoutGrid, arrow: true },
     { label: 'Sort by', icon: ArrowDownUp, arrow: true },
     { label: 'Refresh', icon: RefreshCw, go: closeOverlay },
+    { label: 'Fullscreen', icon: Maximize, go: () => { useSys.getState().toggleFullscreen(); closeOverlay(); } },
     'sep',
     { label: 'Display settings', icon: Monitor, go: () => openApp('settings') },
     { label: 'Personalize', icon: Brush, go: () => openApp('settings') },

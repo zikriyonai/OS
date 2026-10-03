@@ -1,9 +1,9 @@
 import { create } from 'zustand';
+import { Zikriyon } from '@/lib/native';
 
 let zc = 10;
 
 export const useOS = create((set, get) => ({
-  // ---- stage: boot | lock | login | desktop | off
   stage: 'boot',
   setStage: (stage) =>
     set((s) => ({
@@ -13,7 +13,6 @@ export const useOS = create((set, get) => ({
       windows: stage === 'boot' || stage === 'off' ? [] : s.windows,
     })),
 
-  // ---- overlays: start | quick | widgets | taskview | power
   overlay: null,
   context: null,
   setOverlay: (overlay) => set({ overlay, context: null }),
@@ -21,7 +20,6 @@ export const useOS = create((set, get) => ({
   closeOverlay: () => set({ overlay: null, context: null }),
   setContext: (context) => set({ context, overlay: null }),
 
-  // ---- windows
   windows: [],
   openApp: (app) => {
     const ex = get().windows.find((w) => w.app === app);
@@ -49,15 +47,21 @@ export const useOS = create((set, get) => ({
   toggleMax: (id) =>
     set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, maximized: !w.maximized, z: ++zc } : w)) })),
 
-  // ---- system settings
+  // hwBrightness true tab hota hai jab laptop screen ki asli brightness control ho sake
+  hwBrightness: false,
   brightness: 78,
   volume: 78,
-  setBrightness: (brightness) => set({ brightness }),
-  setVolume: (volume) => set({ volume }),
+  setBrightness: (brightness) => {
+    set({ brightness });
+    if (get().hwBrightness) Zikriyon.setBrightness({ value: brightness }).catch(() => {});
+  },
+  setVolume: (volume) => {
+    set({ volume });
+    Zikriyon.setVolume({ value: volume }).catch(() => {});
+  },
   toggles: { wifi: true, bluetooth: true, airplane: false, saver: false, night: false, focus: false },
   toggle: (k, v) => set((s) => ({ toggles: { ...s.toggles, [k]: v === undefined ? !s.toggles[k] : v } })),
 
-  // ---- notifications
   notifications: [
     { id: 1, icon: 'msg', title: 'Messages', body: 'You have 3 new messages', time: '2m ago' },
     { id: 2, icon: 'sys', title: 'System Update', body: 'ZikriyonOS 1.0.0 is ready to install', time: '12m ago' },

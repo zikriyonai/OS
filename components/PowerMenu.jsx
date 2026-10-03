@@ -3,15 +3,31 @@ import { motion } from 'framer-motion';
 import { Moon, RotateCw, Power } from 'lucide-react';
 import Wallpaper from './Wallpaper';
 import { useOS } from '@/store/useOS';
+import { isNative, Zikriyon } from '@/lib/native';
 
 export default function PowerMenu() {
   const setStage = useOS((s) => s.setStage);
   const closeOverlay = useOS((s) => s.closeOverlay);
 
   const items = [
-    { label: 'Sleep', icon: Moon, go: () => setStage('lock') },
-    { label: 'Restart', icon: RotateCw, go: () => setStage('boot') },
-    { label: 'Shut down', icon: Power, go: () => setStage('off') },
+    {
+      label: 'Sleep', icon: Moon,
+      go: () => { setStage('lock'); if (isNative()) Zikriyon.power({ action: 'sleep' }).catch(() => {}); },
+    },
+    {
+      label: 'Restart', icon: RotateCw,
+      go: () => {
+        if (isNative()) { if (confirm('PC sach me restart karna hai?')) Zikriyon.power({ action: 'restart' }).catch(() => {}); }
+        else setStage('boot');
+      },
+    },
+    {
+      label: 'Shut down', icon: Power,
+      go: () => {
+        if (isNative()) { if (confirm('PC sach me shut down karna hai?')) Zikriyon.power({ action: 'shutdown' }).catch(() => {}); }
+        else setStage('off');
+      },
+    },
   ];
 
   return (

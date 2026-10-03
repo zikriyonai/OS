@@ -29,7 +29,8 @@ export default function Desktop() {
   const windows = useOS((s) => s.windows);
   const overlay = useOS((s) => s.overlay);
   const context = useOS((s) => s.context);
-  const brightness = useOS((s) => s.brightness);
+  const hw = useOS((s) => s.hwBrightness);
+  const brightness = useOS((s) => (s.hwBrightness ? 100 : s.brightness));
   const night = useOS((s) => s.toggles.night);
   const closeOverlay = useOS((s) => s.closeOverlay);
   const openApp = useOS((s) => s.openApp);
@@ -91,7 +92,7 @@ export default function Desktop() {
           <WeatherIcon code={weather?.code ?? 0} night={weather ? !weather.isDay : true} size={44} />
           <div>
             <div className="text-3xl font-light">{weather ? `${weather.temp}°C` : '--°C'}</div>
-            <div className="text-xs text-white/70">{weather ? `${weather.city} · ${weather.label}` : 'Location allow karo'}</div>
+            <div className="text-xs text-white/70">{weather ? `${weather.city} · ${weather.label}` : 'Loading weather...'}</div>
           </div>
         </div>
         <span className="h-12 w-px bg-white/20" />
@@ -119,8 +120,10 @@ export default function Desktop() {
 
       <PermissionPrompt />
 
-      {/* brightness + night light */}
-      <div className="pointer-events-none absolute inset-0 z-[9000]" style={{ background: `rgba(0,0,0,${((100 - brightness) / 100) * 0.7})` }} />
+      {/* brightness overlay (sirf jab hardware brightness na ho) + night light */}
+      {!hw && (
+        <div className="pointer-events-none absolute inset-0 z-[9000]" style={{ background: `rgba(0,0,0,${((100 - brightness) / 100) * 0.7})` }} />
+      )}
       {night && <div className="pointer-events-none absolute inset-0 z-[9001]" style={{ background: 'rgba(255,150,0,.1)' }} />}
     </motion.div>
   );

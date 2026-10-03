@@ -1,17 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, CloudMoon, Moon, Cloud, Sun, Newspaper, Cpu, Clock } from 'lucide-react';
+import { X, Newspaper, Cpu, Clock } from 'lucide-react';
 import Calendar from './Calendar';
+import WeatherIcon from './WeatherIcon';
 import { useOS } from '@/store/useOS';
-
-const HOURLY = [
-  { t: 'Now', i: Moon, d: '22°' },
-  { t: '11 PM', i: Moon, d: '20°' },
-  { t: '2 AM', i: Cloud, d: '18°' },
-  { t: '5 AM', i: Cloud, d: '17°' },
-  { t: '8 AM', i: Sun, d: '21°' },
-];
+import { useSys } from '@/store/useSys';
+import { useLiveStats } from '@/hooks/useLiveStats';
 
 const NEWS = [
   ['New AI model achieves breakthrough in real-time reasoning', '2h ago', 'from-blue-600 to-cyan-400'],
@@ -43,16 +37,9 @@ function Ring({ value, label, sub, color }) {
 
 export default function Widgets() {
   const closeOverlay = useOS((s) => s.closeOverlay);
-  const [cpu, setCpu] = useState(28);
-  const [ram, setRam] = useState(62);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCpu(20 + Math.round(Math.random() * 25));
-      setRam(58 + Math.round(Math.random() * 8));
-    }, 2000);
-    return () => clearInterval(t);
-  }, []);
+  const weather = useSys((s) => s.weather);
+  const requestLocation = useSys((s) => s.requestLocation);
+  const { cpu, cpuLabel, ram, up } = useLiveStats();
 
   return (
     <motion.div
@@ -72,24 +59,30 @@ export default function Widgets() {
       <div className="grid grid-cols-2 gap-3">
         {/* weather */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-start gap-3">
-            <CloudMoon size={52} stroke="url(#zgrad)" />
-            <div>
-              <div className="text-sm">New Delhi</div>
-              <div className="text-xs text-white/60">Clear sky</div>
-              <div className="text-4xl font-light">22°C</div>
-              <div className="text-xs text-white/60">H: 28° &nbsp; L: 16°</div>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[11px]">
-            {HOURLY.map((h) => (
-              <div key={h.t} className="rounded-lg bg-white/5 py-1.5">
-                <div className="text-white/60">{h.t}</div>
-                <h.i size={16} className="mx-auto my-1" stroke="url(#zgrad)" />
-                <div>{h.d}</div>
+          {weather ? (
+            <>
+              <div className="flex items-start gap-3">
+                <WeatherIcon code={weather.code} night={!weather.isDay} size={52} />
+                <div>
+                  <div className="text-sm">{weather.city}</div>
+                  <div className="text-xs text-white/60">{weather.label}</div>
+                  <div className="text-4xl font-light">{weather.temp}°C</div>
+                  <div className="text-xs text-white/60">H: {weather.hi}° &nbsp; L: {weather.lo}°</div>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[11px]">
+                {weather.hourly.map((h) => (
+                  <div key={h.label} className="rounded-lg bg-white/5 py-1.5">
+                    <div className="text-white/60">{h.label}</div>
+                    <div className="my-1 flex justify-center"><WeatherIcon code={h.code} night={h.night} size={16} /></div>
+                    <div>{h.temp}°</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <button onClick={requestLocation} className="grad-bg rounded-full px-4 py-2 text-sm">Location allow karo</button>
+          )}
         </div>
 
         {/* calendar */}
@@ -115,11 +108,17 @@ export default function Widgets() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium"><Cpu size={16} /> System</div>
           <div className="flex flex-col gap-4">
-            <Ring value={cpu} label="CPU" sub="3.60 GHz" color="#38bdf8" />
-            <Ring value={ram} label="RAM" sub={`${((ram / 100) * 16).toFixed(1)} / 16.0 GB`} color="#e040c8" />
+            <Ring value={cpu ?? 0} label="CPU" sub={cpuLabel || 'Measuring...'} color="#38bdf8" />
+            <Ring
+              value={ram ? Math.round((ram.used / ram.limit) * 100) : 0}
+              label="Browser RAM"
+              sub={ram ? `${(ram.used / 1048576).toFixed(0)} MB used` : 'Chrome/Edge only'}
+              color="#e040c8"
+            />
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-            <span className="flex items-center gap-2"><Clock size={16} /> Uptime</span><span>2h 34m</span>
+            <span className="flex items-center gap-2"><Clock size={16} /> Uptime</span>
+            <span>{Math.floor(up / 60)}h {up % 60}m</span>
           </div>
         </div>
       </div>

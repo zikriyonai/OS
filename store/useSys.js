@@ -6,15 +6,16 @@ let inited = false;
 let wTimer = null;
 let lowNotified = false;
 
-async function loadWeather(lat, lon, set) {
+async function loadWeather(lat, lon, set, cityHint) {
   try {
     const [w, g] = await Promise.all([
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2`
       ).then((r) => r.json()),
-      fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
-      ).then((r) => r.json()).catch(() => null),
+      cityHint
+        ? Promise.resolve(null)
+        : fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+            .then((r) => r.json()).catch(() => null),
     ]);
     const c = w.current;
     const start = Math.max(0, w.hourly.time.findIndex((t) => t >= c.time.slice(0, 13)));
@@ -38,13 +39,25 @@ async function loadWeather(lat, lon, set) {
         code: c.weather_code,
         isDay: !!c.is_day,
         label: wmo(c.weather_code),
-        city: g?.city || g?.locality || g?.principalSubdivision || 'Your location',
+        city: cityHint || g?.city || g?.locality || g?.principalSubdivision || 'Your location',
         hi: Math.round(w.daily.temperature_2m_max[0]),
         lo: Math.round(w.daily.temperature_2m_min[0]),
         hourly,
       },
     });
   } catch {}
+}
+
+async function ipLocation() {
+  try {
+    const r = await fetch('https://ipwho.is/').then((x) => x.json());
+    if (r && r.success !== false && r.latitude) return { lat: r.latitude, lon: r.longitude, acc: 5000, city: r.city };
+  } catch {}
+  try {
+    const r = await fetch('https://ipapi.co/json/').then((x) => x.json());
+    if (r && r.latitude) return { lat: r.latitude, lon: r.longitude, acc: 5000, city: r.city };
+  } catch {}
+  return null;
 }
 
 export const useSys = create((set, get) => ({
@@ -66,25 +79,37 @@ export const useSys = create((set, get) => ({
       notifications: [{ id: Date.now() + Math.random(), icon, title, body, time: 'now' }, ...s.notifications],
     }));
     try {
-      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body, icon: '/logo.png' });
       }
     } catch {}
   },
 
   requestLocation: () => {
-    if (!navigator.geolocation) return set({ locState: 'unsupported' });
+    const apply = (loc, hint) => {
+      set({ loc, locState: 'granted' });
+      loadWeather(loc.lat, loc.lon, set, hint);
+      clearInterval(wTimer);
+      wTimer = setInterval(() => loadWeather(loc.lat, loc.lon, set, hint), 15 * 60 * 1000);
+    };
+    const fallback = async () => {
+      const l = await ipLocation();
+      if (l) apply({ lat: l.lat, lon: l.lon, acc: l.acc }, l.city);
+      else set({ locState: 'denied' });
+    };
+
     set({ locState: 'asking' });
+    if (!navigator.geolocation) return fallback();
+    let done = false;
+    const timer = setTimeout(() => { if (!done) { done = true; fallback(); } }, 8000);
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        const loc = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
-        set({ loc, locState: 'granted' });
-        loadWeather(loc.lat, loc.lon, set);
-        clearInterval(wTimer);
-        wTimer = setInterval(() => loadWeather(loc.lat, loc.lon, set), 15 * 60 * 1000);
+        if (done) return;
+        done = true; clearTimeout(timer);
+        apply({ lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy) });
       },
-      () => set({ locState: 'denied' }),
-      { timeout: 15000, maximumAge: 600000 }
+      () => { if (done) return; done = true; clearTimeout(timer); fallback(); },
+      { timeout: 7000, maximumAge: 600000 }
     );
   },
 
@@ -96,7 +121,7 @@ export const useSys = create((set, get) => ({
 
   pairBluetooth: async () => {
     if (!navigator.bluetooth) {
-      get().notify('Bluetooth', 'Ye browser Web Bluetooth support nahi karta. Chrome ya Edge use karo.');
+      get().notify('Bluetooth', 'Bluetooth ke liye tile dabao, system panel khulega.');
       return;
     }
     try {
@@ -115,7 +140,6 @@ export const useSys = create((set, get) => ({
     if (inited || typeof window === 'undefined') return;
     inited = true;
 
-    // network
     set({ online: navigator.onLine });
     const readNet = () => {
       const c = navigator.connection;
@@ -126,7 +150,6 @@ export const useSys = create((set, get) => ({
     window.addEventListener('online', () => { set({ online: true }); get().notify('Network', 'Internet wapas connect ho gaya'); });
     window.addEventListener('offline', () => { set({ online: false }); get().notify('Network', 'Internet disconnect ho gaya'); });
 
-    // battery
     navigator.getBattery?.().then((b) => {
       const up = () => {
         const level = Math.round(b.level * 100);
@@ -142,12 +165,9 @@ export const useSys = create((set, get) => ({
       b.addEventListener('chargingchange', up);
     });
 
-    // notifications permission
     set({ notifPerm: 'Notification' in window ? Notification.permission : 'unsupported' });
 
-    // auto-load location if already allowed earlier
-    navigator.permissions?.query({ name: 'geolocation' }).then((p) => {
-      if (p.state === 'granted') get().requestLocation();
-    }).catch(() => {});
+    // weather turant: pehle IP/GPS se auto-load (permission popup ka intezaar nahi)
+    get().requestLocation();
   },
 }));

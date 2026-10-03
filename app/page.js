@@ -5,6 +5,7 @@ import Boot from '@/components/Boot';
 import Lock from '@/components/Lock';
 import Login from '@/components/Login';
 import Desktop from '@/components/Desktop';
+import NativeBoot from '@/components/NativeBoot';
 
 export default function Page() {
   const stage = useOS((s) => s.stage);
@@ -12,6 +13,8 @@ export default function Page() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-[#05030f]">
+      <NativeBoot />
+
       {/* gradient used by all icons */}
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>

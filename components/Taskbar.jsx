@@ -1,8 +1,10 @@
 'use client';
-import { Search, LayoutPanelLeft, Wifi, Volume2, BatteryMedium } from 'lucide-react';
+import { Search, LayoutPanelLeft, Volume2 } from 'lucide-react';
 import { useOS } from '@/store/useOS';
 import { APPS, PINNED } from '@/lib/apps';
 import { useClock, fmtTime, fmtDateShort } from '@/hooks/useClock';
+import BatteryInfo from './BatteryInfo';
+import NetIcon from './NetIcon';
 
 export default function Taskbar() {
   const windows = useOS((s) => s.windows);
@@ -69,9 +71,9 @@ export default function Taskbar() {
           onClick={() => toggleOverlay('quick')}
           className={`flex items-center gap-3 rounded-2xl px-3 py-1.5 hover:bg-white/10 ${overlay === 'quick' ? 'bg-white/15' : ''}`}
         >
-          <Wifi size={18} />
+          <NetIcon size={18} />
           <Volume2 size={18} />
-          <span className="flex items-center gap-1 text-xs"><BatteryMedium size={20} /> 78%</span>
+          <BatteryInfo />
           <span className="text-right text-xs leading-tight">
             <div>{fmtTime(now)}</div>
             <div className="text-white/70">{fmtDateShort(now)}</div>

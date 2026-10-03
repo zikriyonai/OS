@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CloudMoon, Monitor, Trash2, Folder, Globe } from 'lucide-react';
+import { Monitor, Trash2, Folder, Globe } from 'lucide-react';
 import Wallpaper from './Wallpaper';
 import AppIcon from './AppIcon';
 import Taskbar from './Taskbar';
@@ -12,7 +12,10 @@ import Widgets from './Widgets';
 import TaskView from './TaskView';
 import PowerMenu from './PowerMenu';
 import ContextMenu from './ContextMenu';
+import WeatherIcon from './WeatherIcon';
+import PermissionPrompt from './PermissionPrompt';
 import { useOS } from '@/store/useOS';
+import { useSys } from '@/store/useSys';
 import { useClock, fmtTime, fmtDateLong } from '@/hooks/useClock';
 
 const ICONS = [
@@ -34,6 +37,9 @@ export default function Desktop() {
   const toggleOverlay = useOS((s) => s.toggleOverlay);
   const [sel, setSel] = useState(null);
   const now = useClock();
+  const weather = useSys((s) => s.weather);
+
+  useEffect(() => { useSys.getState().init(); }, []);
 
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && closeOverlay();
@@ -82,10 +88,10 @@ export default function Desktop() {
         className="glass absolute right-4 top-4 flex items-center gap-5 rounded-3xl px-6 py-4 text-left"
       >
         <div className="flex items-center gap-3">
-          <CloudMoon size={44} stroke="url(#zgrad)" />
+          <WeatherIcon code={weather?.code ?? 0} night={weather ? !weather.isDay : true} size={44} />
           <div>
-            <div className="text-3xl font-light">22°C</div>
-            <div className="text-xs text-white/70">New Delhi · Clear sky</div>
+            <div className="text-3xl font-light">{weather ? `${weather.temp}°C` : '--°C'}</div>
+            <div className="text-xs text-white/70">{weather ? `${weather.city} · ${weather.label}` : 'Location allow karo'}</div>
           </div>
         </div>
         <span className="h-12 w-px bg-white/20" />
@@ -110,6 +116,8 @@ export default function Desktop() {
       <Taskbar />
       <AnimatePresence>{overlay === 'power' && <PowerMenu key="p" />}</AnimatePresence>
       <AnimatePresence>{context && <ContextMenu key="c" />}</AnimatePresence>
+
+      <PermissionPrompt />
 
       {/* brightness + night light */}
       <div className="pointer-events-none absolute inset-0 z-[9000]" style={{ background: `rgba(0,0,0,${((100 - brightness) / 100) * 0.7})` }} />

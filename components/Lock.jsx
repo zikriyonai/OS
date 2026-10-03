@@ -1,9 +1,12 @@
 'use client';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wifi, BatteryMedium, Accessibility } from 'lucide-react';
+import { Accessibility } from 'lucide-react';
 import Wallpaper from './Wallpaper';
+import BatteryInfo from './BatteryInfo';
+import NetIcon from './NetIcon';
 import { useOS } from '@/store/useOS';
+import { useSys } from '@/store/useSys';
 import { NOTIF_ICON } from '@/lib/apps';
 import { useClock, fmtTime, fmtDateLong } from '@/hooks/useClock';
 
@@ -11,6 +14,8 @@ export default function Lock() {
   const setStage = useOS((s) => s.setStage);
   const notifications = useOS((s) => s.notifications);
   const now = useClock();
+
+  useEffect(() => { useSys.getState().init(); }, []);
 
   useEffect(() => {
     const h = (e) => {
@@ -38,7 +43,7 @@ export default function Lock() {
 
         <div className="mt-8 flex w-[560px] max-w-[92vw] flex-col gap-3">
           {notifications.slice(0, 2).map((n) => {
-            const Icon = NOTIF_ICON[n.icon];
+            const Icon = NOTIF_ICON[n.icon] || NOTIF_ICON.sys;
             return (
               <div key={n.id} className="glass flex items-center gap-4 rounded-3xl p-4">
                 <div className="grad-bg flex h-11 w-11 items-center justify-center rounded-xl"><Icon size={22} /></div>
@@ -65,9 +70,9 @@ export default function Lock() {
 
       <img src="/logo.png" alt="" className="absolute bottom-6 left-6 w-16" />
       <div className="glass absolute bottom-6 right-6 flex items-center gap-4 rounded-full px-5 py-3">
-        <Wifi size={20} />
+        <NetIcon size={20} />
         <span className="h-5 w-px bg-white/20" />
-        <span className="flex items-center gap-2 text-sm"><BatteryMedium size={22} /> 78%</span>
+        <BatteryInfo size={22} className="gap-2 text-sm" />
         <span className="h-5 w-px bg-white/20" />
         <Accessibility size={20} />
       </div>

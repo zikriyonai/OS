@@ -8,6 +8,7 @@ import { Slider } from './ui';
 import { useOS } from '@/store/useOS';
 import { useSys } from '@/store/useSys';
 import { NOTIF_ICON } from '@/lib/apps';
+import { isNative, Zikriyon } from '@/lib/native';
 import { useClock, fmtDateLong } from '@/hooks/useClock';
 
 const TILES = [
@@ -25,6 +26,14 @@ export default function QuickSettings() {
   const [cal, setCal] = useState(true);
   const now = useClock();
 
+  const tap = (k) => {
+    if (isNative() && ['wifi', 'bluetooth', 'airplane', 'saver'].includes(k)) {
+      Zikriyon.openPanel({ type: k }).catch(() => {});
+    } else if (k === 'bluetooth') pairBluetooth();
+    else if (k === 'wifi') openApp('settings');
+    else toggle(k);
+  };
+
   return (
     <motion.div
       initial={{ y: 30, opacity: 0 }}
@@ -35,7 +44,6 @@ export default function QuickSettings() {
       onContextMenu={(e) => e.stopPropagation()}
       className="scroll-thin absolute bottom-[92px] right-4 z-[6000] flex max-h-[calc(100%-110px)] w-[470px] max-w-[96vw] flex-col gap-3 overflow-y-auto"
     >
-      {/* notifications + calendar */}
       <div className="glass-strong rounded-3xl p-4">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-semibold">Notifications</h3>
@@ -63,7 +71,6 @@ export default function QuickSettings() {
         {cal && <div className="mt-3"><Calendar /></div>}
       </div>
 
-      {/* quick tiles */}
       <div className="glass-strong rounded-3xl p-4">
         <div className="grid grid-cols-3 gap-2.5">
           {TILES.map((t) => {
@@ -75,7 +82,7 @@ export default function QuickSettings() {
             return (
               <button
                 key={t.k}
-                onClick={() => (t.k === 'bluetooth' ? pairBluetooth() : t.k === 'wifi' ? openApp('settings') : toggle(t.k))}
+                onClick={() => tap(t.k)}
                 className={`flex h-[62px] items-center gap-2.5 rounded-xl border border-white/15 px-3 text-left ${on ? 'tile-on' : 'bg-white/5'}`}
               >
                 <t.icon size={20} />
@@ -90,7 +97,7 @@ export default function QuickSettings() {
         <div className="mt-4 flex items-center gap-3"><Sun size={20} /><Slider value={brightness} onChange={setBrightness} /></div>
         <div className="mt-4 flex items-center gap-3">
           <Volume2 size={20} /><Slider value={volume} onChange={setVolume} />
-          <BatteryInfo size={20} className="gap-1 text-sm shrink-0" />
+          <BatteryInfo size={20} className="shrink-0 gap-1 text-sm" />
         </div>
       </div>
     </motion.div>

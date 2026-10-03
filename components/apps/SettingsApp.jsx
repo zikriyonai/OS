@@ -5,7 +5,9 @@ import {
   MemoryStick, HardDrive, Volume2, Bell, Moon, ChevronRight, Headphones, Mic,
 } from 'lucide-react';
 import { Slider, Toggle } from '../ui';
+import { PrivacyPage, NetworkPage } from './SettingsPages';
 import { useOS } from '@/store/useOS';
+import { useDevice } from '@/hooks/useDevice';
 
 const NAV = [
   ['System', Settings], ['Display', Sun], ['Network', Wifi], ['Personalization', Brush], ['Apps', LayoutGrid],
@@ -17,14 +19,15 @@ const Card = ({ children }) => <div className="rounded-2xl border border-white/1
 function Spec({ icon: I, label, value }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/15 bg-white/5"><I size={20} stroke="url(#zgrad)" /></span>
-      <div><div className="text-xs text-white/60">{label}</div><div className="text-sm">{value}</div></div>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/5"><I size={20} stroke="url(#zgrad)" /></span>
+      <div className="min-w-0"><div className="text-xs text-white/60">{label}</div><div className="truncate text-sm">{value}</div></div>
     </div>
   );
 }
 
 export default function SettingsApp() {
   const { brightness, setBrightness, volume, setVolume, toggles, toggle } = useOS();
+  const dev = useDevice();
   const [page, setPage] = useState('System');
   const [hdr, setHdr] = useState(false);
   const [showN, setShowN] = useState(true);
@@ -44,24 +47,32 @@ export default function SettingsApp() {
       </div>
 
       <div className="scroll-thin flex-1 space-y-3 overflow-y-auto p-4">
-        {page !== 'System' ? (
+        {page === 'Privacy' ? (
+          <PrivacyPage />
+        ) : page === 'Network' ? (
+          <NetworkPage />
+        ) : page !== 'System' ? (
           <Card>
             <h2 className="text-xl">{page}</h2>
-            <p className="mt-2 text-sm text-white/70">Ye section jald aa raha hai. Abhi System page poora kaam karta hai.</p>
+            <p className="mt-2 text-sm text-white/70">Ye section jald aa raha hai.</p>
           </Card>
         ) : (
           <>
             <Card>
               <div className="flex items-center gap-6">
                 <img src="/logo.png" alt="" className="w-40" />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <h2 className="text-2xl">Zikriyon-PC</h2>
                   <p className="grad-text text-sm">Powering Your Digital Life</p>
                   <div className="mt-4 grid grid-cols-2 gap-4">
-                    <Spec icon={Monitor} label="Device Name" value="Zikriyon-PC" />
-                    <Spec icon={MemoryStick} label="Installed RAM" value="16.0 GB" />
-                    <Spec icon={Cpu} label="Processor" value="Intel(R) Core(TM) i7-6700HQ 2.60 GHz" />
-                    <Spec icon={HardDrive} label="Storage" value="512 GB SSD" />
+                    <Spec icon={Monitor} label="Device Name" value={`${dev.platform} device`} />
+                    <Spec icon={MemoryStick} label="Memory (approx)" value={dev.mem} />
+                    <Spec icon={Cpu} label="Processor / GPU" value={`${dev.cores} logical cores · ${dev.gpu}`} />
+                    <Spec
+                      icon={HardDrive}
+                      label="Browser storage"
+                      value={dev.storage ? `${(dev.storage.usage / 1e6).toFixed(0)} MB / ${(dev.storage.quota / 1e9).toFixed(0)} GB quota` : 'Unknown'}
+                    />
                   </div>
                 </div>
               </div>
